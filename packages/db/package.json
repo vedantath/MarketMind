@@ -1,0 +1,22 @@
+{
+  "name": "@marketmind/db",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "migrate": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "generate": "prisma generate",
+    "build": "prisma generate && tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.0.0"
+  },
+  "devDependencies": {
+    "@marketmind/config": "workspace:*",
+    "prisma": "^5.0.0",
+    "typescript": "~5.5.0"
+  }
+}

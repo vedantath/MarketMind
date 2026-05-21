@@ -1,0 +1,6 @@
+packages:
+  - "apps/*"
+  - "services/portfolio"
+  - "services/market-data"
+  - "packages/*"
+  # Python services (news-intelligence, ai-orchestration, ingestion) use uv — not listed here

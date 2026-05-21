@@ -1,3 +1,29 @@
+# secrets & local working docs
 .env
 CLAUDE.md
 architecture.md
+
+# dependencies
+node_modules/
+
+# build outputs
+dist/
+.next/
+*.tsbuildinfo
+
+# turbo
+.turbo/
+
+# test & coverage
+coverage/
+.pytest_cache/
+
+# python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+
+# os
+.DS_Store
+Thumbs.db
