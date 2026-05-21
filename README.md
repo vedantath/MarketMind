@@ -70,6 +70,87 @@ See [`docs/architecture.md`](docs/architecture.md) for the full specification.
 
 ---
 
+## Data model
+
+The core schema lives in [`packages/db/prisma/schema.prisma`](packages/db/prisma/schema.prisma)
+(the source of truth). Postgres holds **user, portfolio, and transactional state only** — market
+events live in `packages/events` and embeddings in the vector DB.
+
+```mermaid
+erDiagram
+  USER ||--o{ PORTFOLIO : owns
+  USER ||--o{ ALERT : receives
+  PORTFOLIO ||--o{ HOLDING : contains
+  PORTFOLIO ||--o{ TRANSACTION : records
+  HOLDING |o--o{ TRANSACTION : "linked (SET NULL)"
+
+  USER {
+    string id PK
+    string email UK
+    string passwordHash "nullable — OAuth users have none"
+    datetime createdAt
+    datetime updatedAt
+  }
+  PORTFOLIO {
+    string id PK
+    string userId FK
+    string name
+    datetime createdAt
+    datetime updatedAt
+  }
+  HOLDING {
+    string id PK
+    string portfolioId FK
+    string symbol
+    decimal quantity "Decimal(20,8)"
+    decimal costBasis "Decimal(20,8)"
+    enum source "MANUAL | IMPORTED"
+    string externalId "nullable"
+    datetime updatedAt
+  }
+  TRANSACTION {
+    string id PK
+    string portfolioId FK
+    string holdingId FK "nullable"
+    string symbol
+    enum type "BUY|SELL|DIVIDEND|SPLIT|TRANSFER"
+    decimal quantity "Decimal(20,8)"
+    decimal price "Decimal(20,8)"
+    decimal fees "nullable"
+    datetime executedAt
+    enum source "MANUAL | IMPORTED"
+    string externalId "nullable"
+  }
+  ALERT {
+    string id PK
+    string userId FK
+    string symbol
+    enum type "PRICE | SENTIMENT | NEWS"
+    enum severity "LOW | MEDIUM | HIGH"
+    enum condition "nullable — PRICE only"
+    decimal threshold "nullable"
+    boolean triggered
+    datetime triggeredAt "nullable"
+  }
+```
+
+Notes on the model:
+
+- **Money and quantities are `Decimal(20,8)`, never floats** — float rounding on financial data is a
+  silent, compounding bug.
+- **`Holding` is one aggregated position per symbol per portfolio** (`@@unique([portfolioId, symbol])`);
+  lot-level history lives in `Transaction` rows.
+- **Transactions are an immutable ledger.** Deleting a portfolio cascades to its holdings and
+  transactions, but deleting a holding only nulls the `Transaction.holdingId` link — the audit trail
+  survives. `holdingId` is nullable because dividends and transfers may not map to a holding.
+- **`Alert` is a single-table discriminated union.** `type` is the discriminator; `condition` and
+  `threshold` apply only to `PRICE` alerts. The per-type required-field invariant is enforced in the
+  alert service, not the database.
+- **`source` + `externalId`** on `Holding`/`Transaction` are the seam for V2 brokerage import; all
+  MVP records are `MANUAL`. We never store brokerage credentials — that goes through an aggregator.
+
+---
+
 ## Getting started
 
 ### Prerequisites
@@ -110,7 +191,7 @@ pnpm lint && pnpm typecheck
 |-------|-------|
 | **MVP** | Stock search · news ingestion · chat Q&A · basic portfolio tracking |
 | **V1** | Sentiment engine · alerts · charts integration |
-| **V2** | Correlation engine · personalization · real-time streaming |
+| **V2** | Correlation engine · personalization · real-time streaming · brokerage import |
 | **V3** | Multi-asset reasoning · predictive insights *(careful framing)* |
 
 ---
