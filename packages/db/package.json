@@ -5,7 +5,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "migrate": "prisma migrate dev",
+    "migrate": "prisma --env-file ../../.env migrate dev",
     "migrate:deploy": "prisma migrate deploy",
     "generate": "prisma generate",
     "build": "prisma generate && tsc",
