@@ -10,6 +10,7 @@ import {
 } from "../holdings/repository";
 import { computeAllocation, computePnl } from "../pnl/index";
 import { computeRiskScore } from "../risk/index";
+import { getClosesForSymbols, getQuotesForSymbols } from "../pricing/quotes";
 
 /**
  * Every route trusts `x-user-id` as already-verified identity. That's only safe because this
@@ -104,6 +105,12 @@ export async function portfolioRoutes(app: FastifyInstance) {
       listPortfolioTransactions(portfolio.id),
     ]);
 
+    const symbols = [...new Set(holdings.map((h) => h.symbol))];
+    const [quotes, closes] = await Promise.all([
+      getQuotesForSymbols(symbols),
+      getClosesForSymbols(symbols),
+    ]);
+
     const summary: PortfolioSummary = {
       portfolioId: portfolio.id,
       holdings: holdings.map((h) => ({
@@ -113,9 +120,9 @@ export async function portfolioRoutes(app: FastifyInstance) {
         costBasis: h.costBasis.toString(),
         source: h.source,
       })),
-      pnl: computePnl(transactions),
-      allocation: computeAllocation(holdings),
-      risk: computeRiskScore(holdings),
+      pnl: computePnl(transactions, holdings, quotes),
+      allocation: computeAllocation(holdings, quotes),
+      risk: computeRiskScore(holdings, closes),
     };
 
     return summary;

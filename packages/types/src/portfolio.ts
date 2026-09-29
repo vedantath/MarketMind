@@ -23,9 +23,12 @@ export interface PnL {
 
 export interface AllocationSlice {
   symbol: string;
-  /** Cost-basis-weighted allocation — not live market value (see docs/algorithms.md). */
   pctOfPortfolio: DecimalString;
-  valuationBasis: "COST_BASIS";
+  /**
+   * MARKET_VALUE when every held symbol has a fresh quote (see services/portfolio/src/pnl),
+   * COST_BASIS otherwise — never a silent mix of both. See docs/algorithms.md.
+   */
+  valuationBasis: "COST_BASIS" | "MARKET_VALUE";
 }
 
 export interface RiskScoreComponents {

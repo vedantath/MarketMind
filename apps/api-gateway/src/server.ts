@@ -1,3 +1,7 @@
+// Ambient .d.ts augmentation isn't reachable via a value import (see
+// apps/api-gateway/src/types/fastify-jwt.d.ts) — this reference is what makes ts-node-dev's
+// per-file compilation see the declaration merge, not just `tsc` builds.
+// eslint-disable-next-line @typescript-eslint/triple-slash-reference
 /// <reference path="./types/fastify-jwt.d.ts" />
 import Fastify from "fastify";
 import cors from "@fastify/cors";

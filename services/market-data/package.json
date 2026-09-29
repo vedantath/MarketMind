@@ -12,10 +12,12 @@
   },
   "dependencies": {
     "@marketmind/events": "workspace:*",
-    "@marketmind/types": "workspace:*"
+    "@marketmind/types": "workspace:*",
+    "@marketmind/config": "workspace:*",
+    "fastify": "^5.0.0",
+    "ioredis": "^5.4.0"
   },
   "devDependencies": {
-    "@marketmind/config": "workspace:*",
     "@types/node": "^20.0.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "~5.5.0",

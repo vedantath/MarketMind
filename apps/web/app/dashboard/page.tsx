@@ -66,7 +66,14 @@ export default async function DashboardPage() {
 
       <section className="mb-8">
         <h2 className="mb-3 text-sm font-medium text-[var(--color-muted)]">
-          Allocation <span className="text-xs">(cost-basis weighted, not live market value)</span>
+          Allocation{" "}
+          <span className="text-xs">
+            (
+            {summary.allocation.every((a) => a.valuationBasis === "MARKET_VALUE")
+              ? "live market value"
+              : "cost-basis weighted, not live market value"}
+            )
+          </span>
         </h2>
         <AllocationList allocation={summary.allocation} />
       </section>

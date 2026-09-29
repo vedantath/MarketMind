@@ -31,9 +31,17 @@ const envSchema = z.object({
     .default("true")
     .transform((v) => v === "true"),
 
+  // Trading API — unused until brokerage features (V2). Market data uses ALPACA_DATA_URL below,
+  // a different host entirely.
+  ALPACA_ENDPOINT: z.string().optional(),
   ALPACA_API_KEY: z.string().optional(),
   ALPACA_SECRET_KEY: z.string().optional(),
   POLYGON_API_KEY: z.string().optional(),
+
+  ALPACA_DATA_URL: z.string().default("https://data.alpaca.markets"),
+  MARKET_DATA_SYMBOLS: z.string().default("AAPL,MSFT,NVDA"),
+  MARKET_DATA_POLL_INTERVAL_MS: z.coerce.number().int().positive().default(60000),
+  MARKET_DATA_PORT: z.coerce.number().int().positive().default(4002),
 
   ANTHROPIC_API_KEY: z.string().optional(),
 

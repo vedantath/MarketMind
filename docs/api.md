@@ -1,7 +1,8 @@
 # API contracts
 
-Covers what's actually implemented: `apps/api-gateway` and `services/portfolio`. Everything else
-in the roadmap (market-data, news-intelligence, ai-orchestration, alerts) has no contract yet.
+Covers what's actually implemented: `apps/api-gateway`, `services/portfolio`, and
+`services/market-data` (the last as a cache contract, not HTTP — see below). Everything else in
+the roadmap (news-intelligence, ai-orchestration, alerts) has no contract yet.
 
 ## Trust boundary
 
@@ -49,3 +50,18 @@ All routes require `x-user-id` (see Trust boundary). A portfolio not owned by th
 
 All money/quantity fields are **decimal strings**, never JSON numbers — see `packages/types`'
 `DecimalString` convention.
+
+## `services/market-data` (internal Redis cache, not HTTP)
+
+Not reachable by the gateway or any other service over HTTP — it exposes only a loopback
+`GET /health` for operator visibility. The actual contract other services rely on is the Redis
+cache it writes (see `packages/events/src/quote-cache.ts` and `docs/algorithms.md`'s "Market data"
+section):
+
+| Key | Value | TTL |
+|---|---|---|
+| `quote:<SYMBOL>` | JSON `Quote` (`{ symbol, price, asOf }`) | ~5 min |
+| `bars:<SYMBOL>` | JSON `OhlcBar[]` (~30 most recent daily bars) | ~25 hr |
+
+A missing key means "no fresh data for that symbol" — consumers (`services/portfolio`) must treat
+that as `unavailable` for anything derived from it, never as zero or stale-but-trusted.

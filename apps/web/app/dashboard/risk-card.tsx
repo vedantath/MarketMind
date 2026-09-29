@@ -24,11 +24,13 @@ export function RiskCard({ risk }: { risk: RiskScore }) {
         </div>
         <div>
           <dt className="text-xs text-[var(--color-muted)]">Volatility</dt>
-          <dd className="text-[var(--color-warn)]">
-            {typeof risk.components.volatility === "object"
-              ? `Unavailable — ${risk.components.volatility.reason}`
-              : risk.components.volatility}
-          </dd>
+          {typeof risk.components.volatility === "object" ? (
+            <dd className="text-[var(--color-warn)]">
+              Unavailable — {risk.components.volatility.reason}
+            </dd>
+          ) : (
+            <dd>{Number(risk.components.volatility).toFixed(2)}</dd>
+          )}
         </div>
       </dl>
 

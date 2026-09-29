@@ -42,30 +42,62 @@ export function computeRealizedPnl(transactions: Transaction[]): Prisma.Decimal 
 }
 
 /**
- * Allocation weighted by cost-basis value, not live market value — there's no price feed yet.
- * Callers must surface `valuationBasis` so the UI doesn't imply this is current market allocation.
+ * A held symbol not in `quotes` means "no fresh price for it" (see packages/events' quote cache —
+ * a missing key there is either never polled or expired). Returns null unless every held symbol
+ * has an entry, so callers never silently mix live and stale/missing prices in one figure.
  */
-export function computeAllocation(holdings: Holding[]): AllocationSlice[] {
-  const totalValue = holdings.reduce(
-    (sum, h) => sum.add(h.quantity.mul(h.costBasis)),
-    new Decimal(0)
-  );
+function symbolsMissingQuotes(holdings: Holding[], quotes: Map<string, Prisma.Decimal> | null): string[] {
+  if (!quotes) return [...new Set(holdings.map((h) => h.symbol))];
+  return [...new Set(holdings.filter((h) => !quotes.has(h.symbol)).map((h) => h.symbol))];
+}
+
+/**
+ * Allocation weighted by live market value when every held symbol has a fresh quote; falls back
+ * to cost-basis weighting otherwise. `valuationBasis` tells the UI which one it's looking at —
+ * never presented as market value when it isn't. See docs/algorithms.md.
+ */
+export function computeAllocation(
+  holdings: Holding[],
+  quotes: Map<string, Prisma.Decimal> | null = null
+): AllocationSlice[] {
+  const useMarketValue = symbolsMissingQuotes(holdings, quotes).length === 0 && quotes !== null;
+  const valueOf = (h: Holding) => (useMarketValue ? quotes!.get(h.symbol)! : h.costBasis).mul(h.quantity);
+
+  const totalValue = holdings.reduce((sum, h) => sum.add(valueOf(h)), new Decimal(0));
 
   return holdings.map((h) => {
-    const value = h.quantity.mul(h.costBasis);
-    const pct = totalValue.isZero() ? new Decimal(0) : value.div(totalValue).mul(100);
+    const pct = totalValue.isZero() ? new Decimal(0) : valueOf(h).div(totalValue).mul(100);
     return {
       symbol: h.symbol,
       pctOfPortfolio: pct.toString(),
-      valuationBasis: "COST_BASIS" as const,
+      valuationBasis: useMarketValue ? "MARKET_VALUE" : "COST_BASIS",
     };
   });
 }
 
-export function computePnl(transactions: Transaction[]): PnL {
+export function computePnl(
+  transactions: Transaction[],
+  holdings: Holding[],
+  quotes: Map<string, Prisma.Decimal> | null = null
+): PnL {
+  const missing = symbolsMissingQuotes(holdings, quotes);
+  const unrealized: PnL["unrealized"] =
+    missing.length > 0
+      ? { status: "unavailable", reason: `missing a live price for ${missing.join(", ")}` }
+      : (() => {
+          const totalCostValue = holdings.reduce((sum, h) => sum.add(h.costBasis.mul(h.quantity)), new Decimal(0));
+          const amount = holdings.reduce(
+            (sum, h) => sum.add(quotes!.get(h.symbol)!.sub(h.costBasis).mul(h.quantity)),
+            new Decimal(0)
+          );
+          return {
+            amount: amount.toString(),
+            pct: totalCostValue.isZero() ? null : amount.div(totalCostValue).mul(100).toString(),
+          };
+        })();
+
   return {
-    // No market-data price feed in MVP — reporting a number here would be fabricated, not derived.
-    unrealized: { status: "unavailable", reason: "no price feed configured" },
+    unrealized,
     realized: { amount: computeRealizedPnl(transactions).toString() },
   };
 }

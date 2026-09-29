@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Prisma } from "@marketmind/db";
 import type { Holding, Transaction } from "@marketmind/db";
-import { computeAllocation, computeRealizedPnl } from "./index";
+import { computeAllocation, computePnl, computeRealizedPnl } from "./index";
 
 const { Decimal } = Prisma;
 
@@ -84,5 +84,56 @@ describe("computeAllocation", () => {
 
   it("returns zero allocation without dividing by zero on an empty portfolio", () => {
     expect(computeAllocation([])).toEqual([]);
+  });
+
+  it("switches to market-value weighting when every held symbol has a fresh quote", () => {
+    const holdings = [
+      holding({ symbol: "AAPL", quantity: new Decimal(10), costBasis: new Decimal(100) }), // cost 1000
+      holding({ symbol: "MSFT", quantity: new Decimal(5), costBasis: new Decimal(200) }), // cost 1000
+    ];
+    // market values: AAPL 10*150=1500, MSFT 5*100=500 -> 75% / 25%, not the 50/50 cost split
+    const quotes = new Map([
+      ["AAPL", new Decimal(150)],
+      ["MSFT", new Decimal(100)],
+    ]);
+    const allocation = computeAllocation(holdings, quotes);
+    const aapl = allocation.find((a) => a.symbol === "AAPL")!;
+    const msft = allocation.find((a) => a.symbol === "MSFT")!;
+    expect(aapl.valuationBasis).toBe("MARKET_VALUE");
+    expect(aapl.pctOfPortfolio).toBe("75");
+    expect(msft.pctOfPortfolio).toBe("25");
+  });
+
+  it("falls back to cost-basis weighting when any held symbol is missing a quote", () => {
+    const holdings = [
+      holding({ symbol: "AAPL", quantity: new Decimal(10), costBasis: new Decimal(100) }),
+      holding({ symbol: "MSFT", quantity: new Decimal(5), costBasis: new Decimal(200) }),
+    ];
+    const quotes = new Map([["AAPL", new Decimal(150)]]); // MSFT missing
+    const allocation = computeAllocation(holdings, quotes);
+    expect(allocation.every((a) => a.valuationBasis === "COST_BASIS")).toBe(true);
+  });
+});
+
+describe("computePnl", () => {
+  it("reports unrealized PnL as unavailable when a held symbol has no quote", () => {
+    const holdings = [holding({ symbol: "AAPL", quantity: new Decimal(10), costBasis: new Decimal(100) })];
+    const pnl = computePnl([], holdings, new Map());
+    expect(pnl.unrealized).toEqual({ status: "unavailable", reason: "missing a live price for AAPL" });
+  });
+
+  it("reports zero unrealized PnL (not unavailable) for a portfolio with no holdings", () => {
+    const pnl = computePnl([], [], new Map());
+    expect(pnl.unrealized).toEqual({ amount: "0", pct: null });
+  });
+
+  it("computes unrealized amount and pct once every held symbol has a quote", () => {
+    const holdings = [
+      holding({ symbol: "AAPL", quantity: new Decimal(10), costBasis: new Decimal(100) }), // cost 1000
+    ];
+    const quotes = new Map([["AAPL", new Decimal(150)]]);
+    const pnl = computePnl([], holdings, quotes);
+    // (150 - 100) * 10 = 500; pct = 500 / 1000 * 100 = 50
+    expect(pnl.unrealized).toEqual({ amount: "500", pct: "50" });
   });
 });
