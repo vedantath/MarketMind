@@ -1,6 +1,6 @@
 export type { DecimalString } from "./decimal";
 export type { ConfidenceLevel, Confidence } from "./confidence";
-export type { AssetClass, AssetSymbol, Quote, OhlcBar } from "./market";
+export type { AssetClass, AssetSymbol, AssetSearchResult, Quote, OhlcBar } from "./market";
 export type {
   RecordSource,
   TransactionType,

@@ -7,6 +7,13 @@ export interface AssetSymbol {
   assetClass: AssetClass;
 }
 
+/** A tradable equity as returned by stock search — see services/market-data's asset cache. */
+export interface AssetSearchResult {
+  symbol: string;
+  name: string;
+  exchange: string;
+}
+
 export interface Quote {
   symbol: string;
   price: DecimalString;

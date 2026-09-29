@@ -1,5 +1,5 @@
 import "server-only";
-import type { PortfolioSummary } from "@marketmind/types";
+import type { PortfolioSummary, AssetSearchResult, Quote } from "@marketmind/types";
 import { gatewayUrl } from "./gateway-url";
 
 export class GatewayError extends Error {
@@ -45,6 +45,14 @@ export function createPortfolio(token: string, name: string): Promise<PortfolioL
 
 export function getPortfolioSummary(token: string, portfolioId: string): Promise<PortfolioSummary> {
   return gatewayFetch(`/api/portfolio/portfolios/${portfolioId}/summary`, token);
+}
+
+export function searchAssets(token: string, q: string): Promise<AssetSearchResult[]> {
+  return gatewayFetch(`/api/market/search?q=${encodeURIComponent(q)}`, token);
+}
+
+export function getQuote(token: string, symbol: string): Promise<Quote> {
+  return gatewayFetch(`/api/market/quote/${encodeURIComponent(symbol)}`, token);
 }
 
 export interface LoginResult {

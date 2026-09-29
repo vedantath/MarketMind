@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mapTrade, mapBars } from "./alpaca";
+import { mapTrade, mapBars, mapAsset } from "./alpaca";
 
 describe("mapTrade", () => {
   it("maps an Alpaca latest-trade response to a Quote, price as a decimal string", () => {
@@ -46,5 +46,21 @@ describe("mapBars", () => {
 
   it("maps Alpaca's bars: null (no start param, or no data in range) to an empty list", () => {
     expect(mapBars({ symbol: "AAPL", bars: null })).toEqual([]);
+  });
+});
+
+describe("mapAsset", () => {
+  it("keeps only symbol, name, and exchange — drops margin/id/attribute fields", () => {
+    const asset = mapAsset({
+      symbol: "AAPL",
+      name: "Apple Inc. Common Stock",
+      exchange: "NASDAQ",
+      tradable: true,
+    });
+    expect(asset).toEqual({
+      symbol: "AAPL",
+      name: "Apple Inc. Common Stock",
+      exchange: "NASDAQ",
+    });
   });
 });

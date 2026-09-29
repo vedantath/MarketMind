@@ -31,9 +31,9 @@ const envSchema = z.object({
     .default("true")
     .transform((v) => v === "true"),
 
-  // Trading API — unused until brokerage features (V2). Market data uses ALPACA_DATA_URL below,
-  // a different host entirely.
-  ALPACA_ENDPOINT: z.string().optional(),
+  // Trading API — used read-only for the tradable-assets list (stock search). Never used for
+  // placing orders; that's V2 brokerage territory. A different host from ALPACA_DATA_URL below.
+  ALPACA_ENDPOINT: z.string().default("https://paper-api.alpaca.markets/v2"),
   ALPACA_API_KEY: z.string().optional(),
   ALPACA_SECRET_KEY: z.string().optional(),
   POLYGON_API_KEY: z.string().optional(),
@@ -42,6 +42,8 @@ const envSchema = z.object({
   MARKET_DATA_SYMBOLS: z.string().default("AAPL,MSFT,NVDA"),
   MARKET_DATA_POLL_INTERVAL_MS: z.coerce.number().int().positive().default(60000),
   MARKET_DATA_PORT: z.coerce.number().int().positive().default(4002),
+  ASSET_REFRESH_INTERVAL_MS: z.coerce.number().int().positive().default(86400000),
+  MARKET_DATA_SERVICE_URL: z.string().default("http://127.0.0.1:4002"),
 
   ANTHROPIC_API_KEY: z.string().optional(),
 

@@ -13,6 +13,7 @@ import { loadEnv } from "@marketmind/config";
 import authenticatePlugin from "./auth/authenticate";
 import { authRoutes } from "./auth/routes";
 import { portfolioProxyRoutes } from "./routes/portfolio-proxy";
+import { marketProxyRoutes } from "./routes/market-proxy";
 
 const env = loadEnv();
 const app = Fastify({ logger: { level: env.LOG_LEVEL } });
@@ -40,6 +41,7 @@ async function main() {
   await app.register(authenticatePlugin);
   await app.register(authRoutes);
   await app.register(portfolioProxyRoutes);
+  await app.register(marketProxyRoutes);
 
   await app.listen({ port: env.GATEWAY_PORT, host: "0.0.0.0" });
 }

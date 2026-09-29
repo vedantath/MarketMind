@@ -1,7 +1,8 @@
-import type { Quote, OhlcBar } from "@marketmind/types";
+import type { Quote, OhlcBar, AssetSearchResult } from "@marketmind/types";
 
 export interface AlpacaCredentials {
   dataUrl: string;
+  tradingUrl: string;
   apiKey: string;
   secretKey: string;
 }
@@ -16,7 +17,14 @@ interface AlpacaBarsResponse {
   bars: Array<{ t: string; o: number; h: number; l: number; c: number; v: number }> | null;
 }
 
-function authHeaders(creds: AlpacaCredentials): Record<string, string> {
+interface AlpacaAsset {
+  symbol: string;
+  name: string;
+  exchange: string;
+  tradable: boolean;
+}
+
+export function authHeaders(creds: AlpacaCredentials): Record<string, string> {
   return {
     "APCA-API-KEY-ID": creds.apiKey,
     "APCA-API-SECRET-KEY": creds.secretKey,
@@ -86,4 +94,25 @@ export async function getRecentDailyBars(
     throw new Error(`Alpaca bars for ${symbol} failed: ${response.status} ${response.statusText}`);
   }
   return mapBars((await response.json()) as AlpacaBarsResponse);
+}
+
+/** Pure mapper, tested against fixture JSON — no network in unit tests. */
+export function mapAsset(asset: AlpacaAsset): AssetSearchResult {
+  return { symbol: asset.symbol, name: asset.name, exchange: asset.exchange };
+}
+
+/**
+ * The full list of tradable US equities — Alpaca's /v2/assets has no free-text search param and
+ * returns everything in one call, so search itself happens in-memory against a cached copy of
+ * this list (see src/routes/market.ts), not as a live call per keystroke. Read-only use of the
+ * Trading API — never used to place orders (that's V2 brokerage territory).
+ */
+export async function getTradableUsEquities(creds: AlpacaCredentials): Promise<AssetSearchResult[]> {
+  const url = `${creds.tradingUrl}/assets?status=active&asset_class=us_equity`;
+  const response = await fetch(url, { headers: authHeaders(creds) });
+  if (!response.ok) {
+    throw new Error(`Alpaca assets list failed: ${response.status} ${response.statusText}`);
+  }
+  const assets = (await response.json()) as AlpacaAsset[];
+  return assets.filter((a) => a.tradable).map(mapAsset);
 }

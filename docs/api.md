@@ -1,8 +1,9 @@
 # API contracts
 
 Covers what's actually implemented: `apps/api-gateway`, `services/portfolio`, and
-`services/market-data` (the last as a cache contract, not HTTP — see below). Everything else in
-the roadmap (news-intelligence, ai-orchestration, alerts) has no contract yet.
+`services/market-data` — the last has both an HTTP contract (search/quote, behind the gateway) and
+a Redis cache contract (quotes/bars, read directly by `services/portfolio`). Everything else in the
+roadmap (news-intelligence, ai-orchestration, alerts) has no contract yet.
 
 ## Trust boundary
 
@@ -25,6 +26,10 @@ The gateway is the only thing that sets `x-user-id` (from the subject (`sub`) of
 never from client input) and `x-internal-secret`. If the portfolio service is ever exposed to
 another caller, both of these must still hold — don't remove either layer to "simplify" the proxy.
 
+`services/market-data` has the same two-layer boundary (loopback + `x-internal-secret`), even
+though none of its routes are user-scoped — there's simply no unauthenticated internal service in
+this system, by design.
+
 ## `apps/api-gateway` (public)
 
 | Method | Path | Auth | Notes |
@@ -33,6 +38,7 @@ another caller, both of these must still hold — don't remove either layer to "
 | POST | `/auth/login` | none | `{ email, password }` → `200 { token, user }`. `401` invalid credentials. `400 OAUTH_ONLY_ACCOUNT` if the account has no password hash (OAuth-only) — never a 500. |
 | GET | `/auth/me` | Bearer JWT | `200 { id, email }`. |
 | * | `/api/portfolio/*` | Bearer JWT | Proxied to the portfolio service with `x-user-id` attached; path prefix stripped. |
+| * | `/api/market/*` | Bearer JWT | Proxied to the market-data service; path prefix stripped. No `x-user-id` — nothing behind it is user-scoped. |
 
 ## `services/portfolio` (private — behind the gateway only)
 
@@ -51,17 +57,24 @@ All routes require `x-user-id` (see Trust boundary). A portfolio not owned by th
 All money/quantity fields are **decimal strings**, never JSON numbers — see `packages/types`'
 `DecimalString` convention.
 
-## `services/market-data` (internal Redis cache, not HTTP)
+## `services/market-data` (private — behind the gateway only, plus a Redis cache contract)
 
-Not reachable by the gateway or any other service over HTTP — it exposes only a loopback
-`GET /health` for operator visibility. The actual contract other services rely on is the Redis
-cache it writes (see `packages/events/src/quote-cache.ts` and `docs/algorithms.md`'s "Market data"
+`GET /health` needs no `x-internal-secret` (see Trust boundary); every other route does.
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/search?q=` | In-memory substring search over the cached tradable-US-equity list (`AssetSearchResult[]`, capped at 20, ranked exact-symbol-match first). Returns `[]`, not an error, if the asset cache hasn't populated yet or nothing matches. |
+| GET | `/quote/:symbol` | Cache-first `Quote`; on a cache miss, fetches live from Alpaca and warms the cache (same key `services/portfolio` reads). `404 NO_QUOTE` for a symbol Alpaca has no trade for — never a 500. |
+
+`services/portfolio` does **not** call these HTTP routes — it reads the Redis cache directly (see
+`packages/events/src/quote-cache.ts`, `asset-cache.ts`, and `docs/algorithms.md`'s "Market data"
 section):
 
 | Key | Value | TTL |
 |---|---|---|
 | `quote:<SYMBOL>` | JSON `Quote` (`{ symbol, price, asOf }`) | ~5 min |
 | `bars:<SYMBOL>` | JSON `OhlcBar[]` (~30 most recent daily bars) | ~25 hr |
+| `assets:us_equity` | JSON `AssetSearchResult[]` (full tradable list, slimmed to `{symbol, name, exchange}`) | ~26 hr |
 
-A missing key means "no fresh data for that symbol" — consumers (`services/portfolio`) must treat
+A missing quote/bars key means "no fresh data for that symbol" — `services/portfolio` must treat
 that as `unavailable` for anything derived from it, never as zero or stale-but-trusted.

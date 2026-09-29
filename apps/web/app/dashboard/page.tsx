@@ -37,11 +37,16 @@ export default async function DashboardPage() {
     <main className="mx-auto max-w-3xl px-4 py-10">
       <header className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{portfolios[0].name}</h1>
-        <form action="/api/logout" method="POST">
-          <button type="submit" className="text-sm text-[var(--color-muted)] underline">
-            Sign out
-          </button>
-        </form>
+        <div className="flex items-center gap-4">
+          <a href="/search" className="text-sm text-[var(--color-muted)] underline">
+            Search
+          </a>
+          <form action="/api/logout" method="POST">
+            <button type="submit" className="text-sm text-[var(--color-muted)] underline">
+              Sign out
+            </button>
+          </form>
+        </div>
       </header>
 
       <section className="mb-8 grid gap-4 sm:grid-cols-2">
