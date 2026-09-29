@@ -5,18 +5,29 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "migrate": "prisma --env-file ../../.env migrate dev",
-    "migrate:deploy": "prisma migrate deploy",
+    "migrate": "dotenv -e ../../.env -- prisma migrate dev",
+    "migrate:deploy": "dotenv -e ../../.env -- prisma migrate deploy",
     "generate": "prisma generate",
     "build": "prisma generate && tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "seed": "dotenv -e ../../.env -- prisma db seed"
+  },
+  "prisma": {
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
   },
   "dependencies": {
-    "@prisma/client": "^5.0.0"
+    "@prisma/client": "^5.0.0",
+    "bcrypt": "^5.1.0"
   },
   "devDependencies": {
     "@marketmind/config": "workspace:*",
     "prisma": "^5.0.0",
-    "typescript": "~5.5.0"
+    "typescript": "~5.5.0",
+    "ts-node": "^10.9.0",
+    "dotenv-cli": "^7.4.0",
+    "@types/bcrypt": "^5.0.0",
+    "eslint": "^9.0.0",
+    "typescript-eslint": "^8.0.0"
   }
 }

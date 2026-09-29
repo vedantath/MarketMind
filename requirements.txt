@@ -1,0 +1,5 @@
+# Shared Python dependencies for services/news-intelligence, services/ai-orchestration,
+# and services/ingestion. Installed with `pip install -r requirements.txt`.
+# Every dependency any Python service needs must be reflected here (see root CLAUDE.md).
+#
+# No Python services are implemented yet — this file is intentionally empty until they land.

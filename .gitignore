@@ -27,3 +27,6 @@ __pycache__/
 # os
 .DS_Store
 Thumbs.db
+
+# misc
+MarketMind_Specification (2).md

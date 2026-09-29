@@ -155,7 +155,7 @@ Notes on the model:
 
 ### Prerequisites
 - Node.js 18+ and **pnpm**
-- **uv** (for the Python services)
+- **Python 3.11+** and `pip` (for the Python services — see root `requirements.txt`)
 - Docker (for Postgres, Redis, and the vector DB)
 
 ### Setup
@@ -174,7 +174,8 @@ pnpm dev                      # run all apps + services
 pnpm dev --filter web         # run a single workspace
 
 # Python services
-cd services/ai-orchestration && uv sync && uv run dev
+pip install -r requirements.txt
+cd services/ai-orchestration && python -m src
 ```
 
 ### Test & lint

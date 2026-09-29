@@ -6,19 +6,25 @@
     "dev": "ts-node-dev --respawn src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "vitest",
-    "typecheck": "tsc --noEmit"
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@marketmind/db": "workspace:*",
     "@marketmind/events": "workspace:*",
-    "@marketmind/types": "workspace:*"
+    "@marketmind/types": "workspace:*",
+    "@marketmind/config": "workspace:*",
+    "@prisma/client": "^5.0.0",
+    "fastify": "^5.0.0",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
-    "@marketmind/config": "workspace:*",
     "@types/node": "^20.0.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "~5.5.0",
-    "vitest": "^1.0.0"
+    "vitest": "^1.0.0",
+    "eslint": "^9.0.0",
+    "typescript-eslint": "^8.0.0"
   }
 }
